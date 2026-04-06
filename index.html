@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jobly - Your AI Career Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --bg: #ffffff;
+      --bg-alt: #f8fafc;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 1rem;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body { 
+      font-family: 'Inter', sans-serif; 
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    nav {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 1.5rem;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a { 
+      text-decoration: none; 
+      color: var(--text-muted); 
+      font-weight: 500; 
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--primary); }
+
+    .hero {
+      padding: 6rem 2rem;
+      text-align: center;
+      background: radial-gradient(circle at top right, #f5f3ff 0%, #ffffff 50%);
+    }
+
+    .hero h1 {
+      font-size: 4rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+    }
+
+    .hero h1 span { color: var(--primary); }
+
+    .hero p {
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+      font-size: 1.25rem;
+      color: var(--text-muted);
+    }
+
+    .hero-btns { display: flex; gap: 1rem; justify-content: center; }
+
+    .container { 
+      max-width: 900px; 
+      margin: 0 auto; 
+      padding: 4rem 1.5rem;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .step-indicator {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3rem;
+      position: relative;
+    }
+
+    .step-indicator::before {
+      content: '';
+      position: absolute;
+      top: 16px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--border);
+      z-index: 0;
+    }
+
+    .step-item {
+      position: relative;
+      z-index: 1;
+      background: white;
+      padding: 0 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .step-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--border);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      transition: all 0.3s;
+    }
+
+    .step-item.active .step-dot { background: var(--primary); }
+    .step-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); }
+
+    .form-section { display: none; }
+    .form-section.active { display: block; animation: slideUp 0.4s ease-out; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .section-desc { color: var(--text-muted); margin-bottom: 2rem; }
+
+    label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      font-family: inherit;
+      transition: all 0.2s;
+      background: var(--bg-alt);
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0.875rem 1.5rem;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      text-decoration: none;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-secondary { background: var(--bg-alt); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+
+    .btn-lg { padding: 1rem 2.5rem; font-size: 1.125rem; }
+
+    .file-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-md);
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--bg-alt);
+      color: var(--text-muted);
+    }
+
+    .file-zone:hover, .file-zone.dragging { border-color: var(--primary); background: #f5f3ff; color: var(--primary); }
+    .file-attached { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 1rem; color: var(--success); font-weight: 600; }
+
+    .tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1rem; }
+    .tag {
+      background: var(--primary);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.8); } }
+    .tag button { background: none; border: none; color: white; cursor: pointer; display: flex; }
+
+    .lang-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f5f3ff;
+      color: var(--primary);
+      border: 1px solid #e0e7ff;
+      border-radius: 99px;
+      padding: 4px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-left: 0.75rem;
+    }
+
+    .review-meta { border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+    .meta-item { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.95rem; }
+    .meta-label { color: var(--text-muted); }
+    .meta-value { font-weight: 600; }
+    .email-body-preview { 
+      background: var(--bg-alt); 
+      padding: 1.5rem; 
+      border-radius: var(--radius-md); 
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .hidden { display: none; }
+    .mt-6 { margin-top: 1.5rem; }
+    .flex { display: flex; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-4 { gap: 1rem; }
+    .w-full { width: 100%; }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="#" class="logo"><i data-lucide="sparkles"></i> Jobly</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <a href="#app" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">Get Started</a>
+  </nav>
+
+  <header class="hero">
+    <h1>Your Dream Job, <span>AI Assisted.</span></h1>
+    <p>Automate your job applications with personalized, AI-generated emails that grab attention and land interviews.</p>
+    <div class="hero-btns">
+      <a href="#app" class="btn btn-primary btn-lg">Start Applying Now</a>
+      <a href="#how-it-works" class="btn btn-secondary btn-lg">Learn More</a>
+    </div>
+  </header>
+
+  <main class="container" id="app">
+    <div class="card">
+      <div class="step-indicator">
+        <div class="step-item active" id="dot-1">
+          <div class="step-dot">1</div>
+          <div class="step-label">Profile</div>
+        </div>
+        <div class="step-item" id="dot-2">
+          <div class="step-dot">2</div>
+          <div class="step-label">Targets</div>
+        </div>
+        <div class="step-item" id="dot-3">
+          <div class="step-dot">3</div>
+          <div class="step-label">Customize</div>
+        </div>
+        <div class="step-item" id="dot-4">
+          <div class="step-dot">4</div>
+          <div class="step-label">Review</div>
+        </div>
+      </div>
+
+      <!-- Phase 1: Profile -->
+      <div class="form-section active" id="section-1">
+        <h2 class="section-title">Tell us about yourself</h2>
+        <p class="section-desc">We'll use this info to personalize your application emails.</p>
+        
+        <div class="grid">
+          <div>
+            <label>Full Name</label>
+            <input id="your-name" placeholder="Alex Johnson" />
+          </div>
+          <div>
+            <label>Email Address</label>
+            <input id="your-email" type="email" placeholder="alex@example.com" />
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+          <label>Current Role / Headline</label>
+          <input id="your-role" placeholder="Senior Product Designer with 6+ years experience" />
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+          <label>Key Skills</label>
+          <input id="your-skills" placeholder="Figma, React, UX Research, Design Systems..." />
+        </div>
+
+        <label>Upload CV (Optional)</label>
+        <div class="file-zone" id="cv-drop" onclick="document.getElementById('cv-file').click()">
+          <i data-lucide="upload-cloud" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.5;"></i>
+          <p>Drag and drop your CV here, or click to browse</p>
+          <p style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.7;">Note: You will need to manually attach this file in Gmail.</p>
+          <input type="file" id="cv-file" accept=".pdf,.doc,.docx" style="display:none" onchange="handleFile(event)" />
+        </div>
+        <div id="file-name" class="file-attached hidden"></div>
+
+        <div class="mt-6 flex justify-between">
+          <div></div>
+          <button class="btn btn-primary" onclick="nextStep(2)">Next Step <i data-lucide="arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- Phase 2: Targets -->
+      <div class="form-section" id="section-2">
+        <h2 class="section-title">Who are you applying to?</h2>
+        <p class="section-desc">Add the companies and contacts you want to reach out to.</p>
+        
+        <div class="grid">
+          <div>
+            <label>Company Name</label>
+            <input id="company-input" placeholder="Google, Stripe, etc." />
+          </div>
+          <div>
+            <label>Hiring Manager Email</label>
+            <input id="contact-input" type="email" placeholder="hiring@company.com" />
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+          <label>What they do (Short description)</label>
+          <input id="company-desc" placeholder="A fintech startup focused on global payments..." />
+        </div>
+
+        <button class="btn btn-secondary w-full" onclick="addCompany()">
+          <i data-lucide="plus"></i> Add Company
+        </button>
+
+        <div id="company-tags" class="tag-list"></div>
+
+        <div class="mt-6 flex justify-between">
+          <button class="btn btn-secondary" onclick="nextStep(1)"><i data-lucide="arrow-left"></i> Back</button>
+          <button class="btn btn-primary" onclick="nextStep(3)">Next Step <i data-lucide="arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- Phase 3: Customize -->
+      <div class="form-section" id="section-3">
+        <h2 class="section-title">Final touches</h2>
+        <p class="section-desc">Set the tone and language for your emails.</p>
+        
+        <div class="grid">
+          <div>
+            <label>Language</label>
+            <select id="lang">
+              <option value="English">🇬🇧 English</option>
+              <option value="French">🇫🇷 Français</option>
+              <option value="Arabic">🇹🇳 العربية</option>
+              <option value="Spanish">🇪🇸 Español</option>
+              <option value="German">🇩🇪 Deutsch</option>
+            </select>
+          </div>
+          <div>
+            <label>Tone</label>
+            <select id="tone">
+              <option value="professional and enthusiastic">Professional & Enthusiastic</option>
+              <option value="formal and concise">Formal & Concise</option>
+              <option value="friendly and direct">Friendly & Direct</option>
+              <option value="creative and bold">Creative & Bold</option>
+            </select>
+          </div>
+        </div>
+
+        <label>Extra context for AI</label>
+        <textarea id="extra-note" placeholder="e.g. Mention my interest in their recent Series B funding, or my love for their open-source projects..."></textarea>
+
+        <div class="mt-6 flex justify-between">
+          <button class="btn btn-secondary" onclick="nextStep(2)"><i data-lucide="arrow-left"></i> Back</button>
+          <button class="btn btn-primary" id="generate-btn" onclick="generateEmails()">
+            <i data-lucide="wand-2"></i> Generate Emails
+          </button>
+        </div>
+      </div>
+
+      <!-- Phase 4: Review -->
+      <div class="form-section" id="section-4">
+        <div class="flex items-center justify-between" style="margin-bottom: 1.5rem;">
+          <div class="flex items-center">
+            <h2 class="section-title" style="margin: 0;">Review Emails</h2>
+            <span id="lang-badge" class="lang-badge hidden"></span>
+          </div>
+          <span id="review-progress" style="font-weight: 700; color: var(--primary);"></span>
+        </div>
+
+        <div id="review-card">
+          <div class="review-meta">
+            <div class="meta-item">
+              <span class="meta-label">To:</span>
+              <span class="meta-value" id="rv-to">—</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Company:</span>
+              <span class="meta-value" id="rv-company">—</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Subject:</span>
+              <span class="meta-value" id="rv-subject">—</span>
+            </div>
+          </div>
+
+          <div class="email-body-preview" id="rv-body"></div>
+
+          <div class="mt-6 flex gap-4">
+            <button class="btn btn-primary w-full" onclick="sendEmail()">
+              <i data-lucide="send"></i> Send Email
+            </button>
+            <button class="btn btn-secondary w-full" onclick="skipEmail()">
+              Skip
+            </button>
+          </div>
+          
+          <button class="btn btn-secondary w-full mt-6" onclick="editBody()">
+            <i data-lucide="edit-3"></i> Edit Body
+          </button>
+
+          <div id="edit-container" class="hidden mt-6">
+            <textarea id="edit-area" style="min-height: 200px; margin-bottom: 1rem;"></textarea>
+            <button class="btn btn-primary w-full" onclick="saveEdit()">Save Changes</button>
+          </div>
+        </div>
+
+        <div id="send-status"></div>
+
+        <div id="phase-done" class="hidden" style="text-align:center; padding:2rem 0;">
+          <div style="background: var(--success); color: white; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+            <i data-lucide="check" style="width: 32px; height: 32px;"></i>
+          </div>
+          <h2 class="section-title">Mission Accomplished!</h2>
+          <p id="summary-text" style="color: var(--text-muted); margin-bottom: 2rem;"></p>
+          <button class="btn btn-primary" onclick="resetAll()">Start Over</button>
+        </div>
+      </div>
+
+
+    </div>
+  </main>
+
+  <script>
+    // ─── Global Error Handler ──────────────────────────────────────────────────
+    window.onerror = function(msg, url, line, col, error) {
+      console.group('Global Browser Error');
+      console.error('Message:', msg);
+      console.error('URL:', url);
+      console.error('Line/Col:', line, col);
+      console.error('Error Object:', error);
+      console.groupEnd();
+      return false;
+    };
+
+    lucide.createIcons();
+
+    // ─── Verbose Error Logger ──────────────────────────────────────────────────
+    function logError(title, details) {
+      console.group(`Jobly Error: ${title}`);
+      console.error('Context:', title);
+      console.error('Details:', details);
+      if (details instanceof Error) {
+        console.error('Stack Trace:', details.stack);
+      }
+      console.groupEnd();
+    }
+
+    // ─── Step Logger ───────────────────────────────────────────────────────────
+    function logStep(step, data) {
+      console.log(`[Jobly Step] ${step}`, data || '');
+    }
+
+    // ─── Language config ───────────────────────────────────────────────────────
+    const LANG_CONFIG = {
+      'English': {
+        flag: '🇬🇧',
+        instruction: 'Write ENTIRELY in English. Every single word of the subject line and email body must be in English. Do not mix in any other language.',
+        greeting: 'Dear Hiring Manager',
+      },
+      'French': {
+        flag: '🇫🇷',
+        instruction: 'Écris ENTIÈREMENT en français. Chaque mot de l\'objet et du corps de l\'email doit être en français. N\'utilise aucun mot dans une autre langue.',
+        greeting: 'Madame, Monsieur',
+      },
+      'Arabic': {
+        flag: '🇹🇳',
+        instruction: 'اكتب بالكامل باللغة العربية. كل كلمة في سطر الموضوع وجسم البريد الإلكتروني يجب أن تكون باللغة العربية. لا تمزج أي لغة أخرى.',
+        greeting: 'السيد/السيدة المسؤول عن التوظيف',
+      },
+      'Spanish': {
+        flag: '🇪🇸',
+        instruction: 'Escribe COMPLETAMENTE en español. Cada palabra del asunto y del cuerpo del correo debe estar en español. No mezcles ningún otro idioma.',
+        greeting: 'Estimado/a responsable de selección',
+      },
+      'German': {
+        flag: '🇩🇪',
+        instruction: 'Schreibe VOLLSTÄNDIG auf Deutsch. Jedes Wort der Betreffzeile und des E-Mail-Textes muss auf Deutsch sein. Mische keine andere Sprache ein.',
+        greeting: 'Sehr geehrte Damen und Herren',
+      },
+    };
+
+    let companies = [];
+    let cvFileName = '';
+    let generatedEmails = [];
+    let currentIdx = 0;
+    let sentCount = 0;
+    let skippedCount = 0;
+
+    function nextStep(step) {
+      document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+      document.getElementById(`section-${step}`).classList.add('active');
+      document.querySelectorAll('.step-item').forEach((item, idx) => {
+        if (idx + 1 <= step) item.classList.add('active');
+        else item.classList.remove('active');
+      });
+    }
+
+    function handleFile(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      cvFileName = f.name;
+      const el = document.getElementById('file-name');
+      el.innerHTML = `<i data-lucide="paperclip" style="width: 16px;"></i> ${f.name}`;
+      el.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    const dropZone = document.getElementById('cv-drop');
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragging'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragging'); });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragging');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        document.getElementById('cv-file').files = files;
+        handleFile({ target: { files } });
+      }
+    });
+
+    function addCompany() {
+      const nameIn = document.getElementById('company-input');
+      const emailIn = document.getElementById('contact-input');
+      const descIn = document.getElementById('company-desc');
+      if (!nameIn.value.trim() || !emailIn.value.trim()) {
+        alert('Please provide at least company name and email.');
+        return;
+      }
+      const id = Date.now();
+      companies.push({ id, name: nameIn.value.trim(), email: emailIn.value.trim(), desc: descIn.value.trim() });
+      renderTags();
+      nameIn.value = ''; emailIn.value = ''; descIn.value = '';
+    }
+
+    function renderTags() {
+      const el = document.getElementById('company-tags');
+      el.innerHTML = '';
+      companies.forEach(c => {
+        const t = document.createElement('div');
+        t.className = 'tag';
+        t.innerHTML = `<span>${c.name}</span><button onclick="removeCompany(${c.id})"><i data-lucide="x" style="width: 14px;"></i></button>`;
+        el.appendChild(t);
+      });
+      lucide.createIcons();
+    }
+
+    function removeCompany(id) {
+      companies = companies.filter(c => c.id !== id);
+      renderTags();
+    }
+
+    async function generateEmails() {
+      if (companies.length === 0) return alert('Add at least one company first.');
+      logStep('Starting generation process...', { companiesCount: companies.length });
+
+      const btn = document.getElementById('generate-btn');
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Generating...';
+
+      const selectedLang = document.getElementById('lang').value;
+      const langCfg = LANG_CONFIG[selectedLang] || LANG_CONFIG['English'];
+      const tone = document.getElementById('tone').value;
+      const name = document.getElementById('your-name').value;
+      const role = document.getElementById('your-role').value;
+      const skills = document.getElementById('your-skills').value;
+      const note = document.getElementById('extra-note').value;
+
+      logStep('Building prompt...', { selectedLang, tone, name, role });
+      const prompt = `${langCfg.instruction}
+
+You are a job application assistant. For each company below, write a spontaneous candidacy email.
+Return ONLY a valid JSON array. No markdown, no explanation, no extra text before or after.
+Each item must have exactly these keys: company, to, subject, body.
+
+CRITICAL LANGUAGE RULE: The "subject" and "body" fields must be written ${selectedLang === 'Arabic' ? 'in Arabic script' : `in ${selectedLang}`}. This is mandatory. Do not use any other language.
+
+Candidate name: ${name}
+Candidate role: ${role}
+Candidate skills: ${skills}
+Tone: ${tone}
+Extra notes: ${note || 'none'}
+
+Companies:
+${companies.map(c => `- ${c.name} (${c.email}): ${c.desc || 'no description provided'}`).join('\n')}
+
+Rules:
+- Keep each email under 200 words
+- Open with a personalized sentence about the company
+- End with a clear call to action
+- Use "${langCfg.greeting}" as the greeting salutation
+- Sign off with the candidate's name
+- Subject line must also be in ${selectedLang}`;
+
+      logStep('Sending generation request to local server...');
+
+      try {
+        const res = await fetch('/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 2000,
+            messages: [{ role: 'user', content: prompt }]
+          })
+        }).catch(err => {
+          logError('Server connection failed', err);
+          throw new Error('Local server is not responding. Please make sure "nodemon server.js" is running.');
+        });
+
+        logStep('Response received from server.', { status: res.status, ok: res.ok });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          logError('Server-side error', errorData.error || `Status ${res.status}`);
+          throw new Error(errorData.error || `Server returned error ${res.status}: ${res.statusText}`);
+        }
+
+        const data = await res.json();
+        const text = data?.content?.[0]?.text;
+        logStep('Data parsed from response.', { hasText: !!text });
+
+        if (!text) {
+          logError('Empty content in API response.', { data });
+          throw new Error('Empty response from API.');
+        }
+
+        const clean = text.replace(/```json|```/g, '').trim();
+        logStep('JSON cleaned for parsing.', { cleanLength: clean.length });
+        
+        try {
+          generatedEmails = JSON.parse(clean);
+        } catch (parseErr) {
+          logError('JSON Parsing Failed', { clean, parseErr });
+          throw new Error(`JSON parsing failed: ${parseErr.message}`);
+        }
+
+        currentIdx = 0; sentCount = 0; skippedCount = 0;
+        logStep('Success! Total emails generated:', generatedEmails.length);
+
+        const badge = document.getElementById('lang-badge');
+        badge.textContent = `${langCfg.flag} ${selectedLang}`;
+        badge.classList.remove('hidden');
+
+        nextStep(4);
+        showReview();
+      } catch (err) {
+        logError('Generation Process Failed', err);
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        btn.style.background = '#ef4444';
+        btn.title = 'Something went wrong. Check the browser console (F12) for details.';
+        setTimeout(() => { btn.style.background = ''; btn.title = ''; lucide.createIcons(); }, 3000);
+        lucide.createIcons();
+        return;
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      lucide.createIcons();
+    }
+
+    function showReview() {
+      if (currentIdx >= generatedEmails.length) {
+        document.getElementById('review-card').classList.add('hidden');
+        document.getElementById('phase-done').classList.remove('hidden');
+        document.getElementById('summary-text').textContent = `You sent ${sentCount} emails and skipped ${skippedCount}. Good luck with your search!`;
+        return;
+      }
+      const e = generatedEmails[currentIdx];
+      document.getElementById('rv-to').textContent = e.to;
+      document.getElementById('rv-company').textContent = e.company;
+      document.getElementById('rv-subject').textContent = e.subject;
+      document.getElementById('rv-body').textContent = e.body;
+      document.getElementById('review-progress').textContent = `${currentIdx + 1} / ${generatedEmails.length}`;
+      document.getElementById('edit-container').classList.add('hidden');
+    }
+
+    function sendEmail() {
+      const e = generatedEmails[currentIdx];
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(e.to)}&su=${encodeURIComponent(e.subject)}&body=${encodeURIComponent(e.body)}`;
+      window.open(gmailUrl, '_blank');
+      sentCount++;
+      currentIdx++;
+      showReview();
+    }
+
+    function skipEmail() {
+      skippedCount++;
+      currentIdx++;
+      showReview();
+    }
+
+    function editBody() {
+      document.getElementById('edit-area').value = generatedEmails[currentIdx].body;
+      document.getElementById('edit-container').classList.toggle('hidden');
+    }
+
+    function saveEdit() {
+      generatedEmails[currentIdx].body = document.getElementById('edit-area').value;
+      document.getElementById('rv-body').textContent = generatedEmails[currentIdx].body;
+      document.getElementById('edit-container').classList.add('hidden');
+    }
+
+    function resetAll() { location.reload(); }
+  </script>
+</body>
+</html>
