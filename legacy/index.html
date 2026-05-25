@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <style>
     :root {
       --primary: #6366f1;
@@ -361,7 +362,6 @@
         <div class="file-zone" id="cv-drop" onclick="document.getElementById('cv-file').click()">
           <i data-lucide="upload-cloud" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.5;"></i>
           <p>Drag and drop your CV here, or click to browse</p>
-          <p style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.7;">Note: You will need to manually attach this file in Gmail.</p>
           <input type="file" id="cv-file" accept=".pdf,.doc,.docx" style="display:none" onchange="handleFile(event)" />
         </div>
         <div id="file-name" class="file-attached hidden"></div>
@@ -374,8 +374,11 @@
 
       <!-- Phase 2: Targets -->
       <div class="form-section" id="section-2">
-        <h2 class="section-title">Who are you applying to?</h2>
-        <p class="section-desc">Add the companies and contacts you want to reach out to.</p>
+        <div class="flex justify-between items-center" style="margin-bottom: 0.5rem;">
+          <h2 class="section-title" style="margin: 0;">Who are you applying to?</h2>
+          <span id="company-counter" style="font-size: 0.875rem; font-weight: 700; color: var(--text-muted);">0 / 10</span>
+        </div>
+        <p class="section-desc">Add up to 10 companies and contacts you want to reach out to.</p>
         
         <div class="grid">
           <div>
@@ -393,9 +396,15 @@
           <input id="company-desc" placeholder="A fintech startup focused on global payments..." />
         </div>
 
-        <button class="btn btn-secondary w-full" onclick="addCompany()">
-          <i data-lucide="plus"></i> Add Company
-        </button>
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+          <button class="btn btn-secondary w-full" onclick="addCompany()">
+            <i data-lucide="plus"></i> Add Manually
+          </button>
+          <button class="btn btn-secondary w-full" onclick="document.getElementById('excel-file').click()">
+            <i data-lucide="file-spreadsheet"></i> Import Excel
+          </button>
+          <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display:none" onchange="handleExcel(event)" />
+        </div>
 
         <div id="company-tags" class="tag-list"></div>
 
@@ -565,6 +574,7 @@
       },
     };
 
+    const MAX_COMPANIES = 10;
     let companies = [];
     let cvFileName = '';
     let generatedEmails = [];
@@ -605,6 +615,10 @@
     });
 
     function addCompany() {
+      if (companies.length >= MAX_COMPANIES) {
+        alert(`You can only select up to ${MAX_COMPANIES} companies at a time.`);
+        return;
+      }
       const nameIn = document.getElementById('company-input');
       const emailIn = document.getElementById('contact-input');
       const descIn = document.getElementById('company-desc');
@@ -620,6 +634,8 @@
 
     function renderTags() {
       const el = document.getElementById('company-tags');
+      const counterEl = document.getElementById('company-counter');
+      
       el.innerHTML = '';
       companies.forEach(c => {
         const t = document.createElement('div');
@@ -627,12 +643,86 @@
         t.innerHTML = `<span>${c.name}</span><button onclick="removeCompany(${c.id})"><i data-lucide="x" style="width: 14px;"></i></button>`;
         el.appendChild(t);
       });
+      
+      counterEl.textContent = `${companies.length} / ${MAX_COMPANIES}`;
+      if (companies.length >= MAX_COMPANIES) {
+        counterEl.style.color = 'var(--primary)';
+      } else {
+        counterEl.style.color = 'var(--text-muted)';
+      }
+      
       lucide.createIcons();
     }
 
     function removeCompany(id) {
       companies = companies.filter(c => c.id !== id);
       renderTags();
+    }
+
+    function handleExcel(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (companies.length >= MAX_COMPANIES) {
+        alert(`You have already reached the limit of ${MAX_COMPANIES} companies.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          if (jsonData.length === 0) {
+            alert('The Excel file is empty.');
+            return;
+          }
+
+          // Map columns (case-insensitive)
+          const potentialCompanies = jsonData.map(row => {
+            const keys = Object.keys(row);
+            const nameKey = keys.find(k => k.toLowerCase().includes('company') || k.toLowerCase().includes('name'));
+            const emailKey = keys.find(k => k.toLowerCase().includes('email') || k.toLowerCase().includes('contact'));
+            const descKey = keys.find(k => k.toLowerCase().includes('desc') || k.toLowerCase().includes('info') || k.toLowerCase().includes('about'));
+
+            if (nameKey && emailKey) {
+              return {
+                id: Date.now() + Math.random(),
+                name: row[nameKey],
+                email: row[emailKey],
+                desc: descKey ? row[descKey] : ''
+              };
+            }
+            return null;
+          }).filter(c => c !== null);
+
+          if (potentialCompanies.length > 0) {
+            const remaining = MAX_COMPANIES - companies.length;
+            const toAdd = potentialCompanies.slice(0, remaining);
+            
+            companies = [...companies, ...toAdd];
+            renderTags();
+            
+            if (potentialCompanies.length > remaining) {
+              alert(`Successfully imported ${toAdd.length} companies. Note: ${potentialCompanies.length - remaining} companies were skipped as the limit of ${MAX_COMPANIES} was reached.`);
+            } else {
+              alert(`Successfully imported ${toAdd.length} companies!`);
+            }
+          } else {
+            alert('Could not find "Company" and "Email" columns in the Excel file.');
+          }
+        } catch (err) {
+          console.error('Excel Parsing Error:', err);
+          alert('Failed to parse Excel file. Make sure it is a valid .xlsx or .csv file.');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+      // Clear input so same file can be re-imported
+      e.target.value = '';
     }
 
     async function generateEmails() {
@@ -659,7 +749,7 @@ You are a job application assistant. For each company below, write a spontaneous
 Return ONLY a valid JSON array. No markdown, no explanation, no extra text before or after.
 Each item must have exactly these keys: company, to, subject, body.
 
-CRITICAL LANGUAGE RULE: The "subject" and "body" fields must be written ${selectedLang === 'Arabic' ? 'in Arabic script' : `in ${selectedLang}`}. This is mandatory. Do not use any other language.
+CRITICAL LANGUAGE RULE: The "subject" and "body" fields must be written in ${selectedLang}. This is mandatory. Do not use any other language.
 
 Candidate name: ${name}
 Candidate role: ${role}
@@ -693,7 +783,6 @@ Rules:
           })
         }).catch(err => {
           logError('Server connection failed', err);
-          throw new Error('Local server is not responding. Please make sure "nodemon server.js" is running.');
         });
 
         logStep('Response received from server.', { status: res.status, ok: res.ok });
