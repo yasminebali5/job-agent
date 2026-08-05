@@ -2,6 +2,12 @@
 
 A two-app project: a FastAPI backend and a Next.js frontend that helps you generate personalized job application emails, track resumes, and manage target companies.
 
+## Screenshots
+
+| Sign in | Create account |
+|---|---|
+| ![Sign in](docs/sign-in.png) | ![Create account](docs/sign-up.png) |
+
 ## Setup
 
 Two processes, in separate terminals.
