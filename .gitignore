@@ -4,3 +4,5 @@ __pycache__/
 backend/uploads/
 backend_out.log
 backend_err.log
+.claude/
+CLAUDE.md
