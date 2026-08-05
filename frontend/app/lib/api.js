@@ -1,15 +1,6 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-export async function apiFetch(path, options = {}) {
-  const res = await fetch(`${API_URL}${path}`, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
-
+async function parseResponse(res) {
   let data = null;
   const text = await res.text();
   if (text) {
@@ -26,4 +17,28 @@ export async function apiFetch(path, options = {}) {
   }
 
   return data;
+}
+
+export async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API_URL}${path}`, {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+  return parseResponse(res);
+}
+
+// For multipart/form-data uploads — the browser must set its own Content-Type
+// (with boundary), so this bypasses apiFetch's JSON header.
+export async function apiUpload(path, formData, options = {}) {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+    ...options,
+  });
+  return parseResponse(res);
 }

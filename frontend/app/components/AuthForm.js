@@ -41,14 +41,13 @@ export default function AuthForm({ mode }) {
         <Link href="/" className="logo">
           <Sparkles size={20} /> Jobly
         </Link>
-        <div className="nav-links">
+        <div className="nav-links" style={{ marginLeft: 'auto' }}>
           {isSignUp ? (
             <Link href="/signin">Sign in</Link>
           ) : (
             <Link href="/signup">Create account</Link>
           )}
         </div>
-        <span />
       </nav>
 
       <main className="container-narrow">
@@ -89,7 +88,10 @@ export default function AuthForm({ mode }) {
             </div>
 
             <div className="form-row">
-              <label>Password</label>
+              <div className="form-row-header">
+                <label>Password</label>
+                {!isSignUp && <Link href="/forgot-password">Forgot password?</Link>}
+              </div>
               <input
                 type="password"
                 value={password}

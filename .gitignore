@@ -1,2 +1,6 @@
 .env
 node_modules/
+__pycache__/
+backend/uploads/
+backend_out.log
+backend_err.log

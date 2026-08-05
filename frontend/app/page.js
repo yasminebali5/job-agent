@@ -30,11 +30,7 @@ export default function HomePage() {
   }, [router]);
 
   if (loading) {
-    return (
-      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-        Loading…
-      </div>
-    );
+    return <div className="loading-screen">Loading…</div>;
   }
 
   return (
@@ -42,6 +38,7 @@ export default function HomePage() {
       <Nav user={user} />
 
       <header className="hero">
+        <span className="eyebrow">✨ AI-powered outreach</span>
         <h1>
           Your Dream Job, <span>AI Assisted.</span>
         </h1>
@@ -57,6 +54,8 @@ export default function HomePage() {
       </header>
 
       <JobForm defaultName={user?.name} defaultEmail={user?.email} />
+
+      <footer className="site-footer">© {new Date().getFullYear()} Jobly. All rights reserved.</footer>
     </>
   );
 }

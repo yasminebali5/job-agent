@@ -14,7 +14,7 @@ import {
   Wand2,
   X,
 } from 'lucide-react';
-import { apiFetch } from '../lib/api';
+import { apiFetch, apiUpload } from '../lib/api';
 
 const LANG_CONFIG = {
   English: {
@@ -60,6 +60,8 @@ export default function JobForm({ defaultName, defaultEmail }) {
     skills: '',
   });
   const [cvFileName, setCvFileName] = useState('');
+  const [cvResumeId, setCvResumeId] = useState(null);
+  const [cvUploading, setCvUploading] = useState(false);
   const [companyInput, setCompanyInput] = useState({ name: '', email: '', desc: '' });
   const [companies, setCompanies] = useState([]);
   const [tone, setTone] = useState('professional and enthusiastic');
@@ -78,9 +80,23 @@ export default function JobForm({ defaultName, defaultEmail }) {
   const cvInputRef = useRef(null);
   const excelInputRef = useRef(null);
 
-  function handleCv(file) {
+  async function handleCv(file) {
     if (!file) return;
     setCvFileName(file.name);
+    setCvResumeId(null);
+    setCvUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const resume = await apiUpload('/resumes', formData);
+      setCvResumeId(resume.id);
+    } catch (err) {
+      console.error('Resume upload failed:', err);
+      alert(`Failed to upload CV: ${err.message || 'unknown error'}`);
+      setCvFileName('');
+    } finally {
+      setCvUploading(false);
+    }
   }
 
   function onCvChange(e) {
@@ -94,7 +110,7 @@ export default function JobForm({ defaultName, defaultEmail }) {
     handleCv(f);
   }
 
-  function addCompany() {
+  async function addCompany() {
     if (companies.length >= MAX_COMPANIES) {
       alert(`You can only select up to ${MAX_COMPANIES} companies at a time.`);
       return;
@@ -103,20 +119,31 @@ export default function JobForm({ defaultName, defaultEmail }) {
       alert('Please provide at least company name and email.');
       return;
     }
-    setCompanies([
-      ...companies,
-      {
-        id: Date.now(),
-        name: companyInput.name.trim(),
-        email: companyInput.email.trim(),
-        desc: companyInput.desc.trim(),
-      },
-    ]);
-    setCompanyInput({ name: '', email: '', desc: '' });
+    try {
+      const created = await apiFetch('/companies', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: companyInput.name.trim(),
+          email: companyInput.email.trim(),
+          description: companyInput.desc.trim(),
+          resume_id: cvResumeId,
+        }),
+      });
+      setCompanies([
+        ...companies,
+        { id: created.id, name: created.name, email: created.email, desc: created.description || '' },
+      ]);
+      setCompanyInput({ name: '', email: '', desc: '' });
+    } catch (err) {
+      alert(`Failed to save company: ${err.message || 'unknown error'}`);
+    }
   }
 
-  function removeCompany(id) {
+  async function removeCompany(id) {
     setCompanies(companies.filter((c) => c.id !== id));
+    try {
+      await apiFetch(`/companies/${id}`, { method: 'DELETE' });
+    } catch {}
   }
 
   async function handleExcel(e) {
@@ -175,14 +202,36 @@ export default function JobForm({ defaultName, defaultEmail }) {
 
       const remaining = MAX_COMPANIES - companies.length;
       const toAdd = parsed.slice(0, remaining);
-      setCompanies([...companies, ...toAdd]);
 
-      if (parsed.length > remaining) {
+      const created = await Promise.all(
+        toAdd.map((c) =>
+          apiFetch('/companies', {
+            method: 'POST',
+            body: JSON.stringify({
+              name: String(c.name),
+              email: String(c.email),
+              description: c.desc ? String(c.desc) : '',
+              resume_id: cvResumeId,
+            }),
+          }).catch((err) => {
+            console.error('Failed to save imported company:', err);
+            return null;
+          }),
+        ),
+      );
+      const saved = created
+        .filter(Boolean)
+        .map((c) => ({ id: c.id, name: c.name, email: c.email, desc: c.description || '' }));
+      setCompanies([...companies, ...saved]);
+
+      if (saved.length < toAdd.length) {
+        alert(`Imported ${saved.length} of ${toAdd.length} companies. Some failed to save — check the console.`);
+      } else if (parsed.length > remaining) {
         alert(
-          `Successfully imported ${toAdd.length} companies. Note: ${parsed.length - remaining} were skipped (limit ${MAX_COMPANIES}).`,
+          `Successfully imported ${saved.length} companies. Note: ${parsed.length - remaining} were skipped (limit ${MAX_COMPANIES}).`,
         );
       } else {
-        alert(`Successfully imported ${toAdd.length} companies!`);
+        alert(`Successfully imported ${saved.length} companies!`);
       }
     } catch (err) {
       console.error('Excel Parsing Error:', err);
@@ -262,8 +311,19 @@ Rules:
     const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(e.to)}&su=${encodeURIComponent(e.subject)}&body=${encodeURIComponent(e.body)}`;
     window.open(url, '_blank');
     setSentCount((c) => c + 1);
-    setCurrentIdx((i) => i + 1);
     setEditing(false);
+
+    const company =
+      companies.find((c) => c.name.trim().toLowerCase() === (e.company || '').trim().toLowerCase()) ||
+      companies[currentIdx];
+    if (company) {
+      apiFetch(`/companies/${company.id}/apply`, {
+        method: 'PATCH',
+        body: JSON.stringify({ resume_id: cvResumeId }),
+      }).catch((err) => console.error('Failed to mark company as applied:', err));
+    }
+
+    setCurrentIdx((i) => i + 1);
   }
 
   function skipEmail() {
@@ -328,7 +388,7 @@ Rules:
               </div>
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
+            <div className="field">
               <label>Current Role / Headline</label>
               <input
                 value={profile.role}
@@ -337,7 +397,7 @@ Rules:
               />
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
+            <div className="field">
               <label>Key Skills</label>
               <input
                 value={profile.skills}
@@ -357,25 +417,25 @@ Rules:
               onDragLeave={() => setDragging(false)}
               onDrop={onDrop}
             >
-              <UploadCloud size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+              <UploadCloud size={48} />
               <p>Drag and drop your CV here, or click to browse</p>
               <input
                 ref={cvInputRef}
                 type="file"
                 accept=".pdf,.doc,.docx"
-                style={{ display: 'none' }}
+                className="hidden"
                 onChange={onCvChange}
               />
             </div>
             {cvFileName && (
               <div className="file-attached">
-                <Paperclip size={16} /> {cvFileName}
+                <Paperclip size={16} /> {cvFileName} {cvUploading && '· Uploading…'}
               </div>
             )}
 
             <div className="mt-6 flex justify-between">
               <div />
-              <button className="btn btn-primary" onClick={() => setStep(2)}>
+              <button className="btn btn-primary" onClick={() => setStep(2)} disabled={cvUploading}>
                 Next Step <ArrowRight size={16} />
               </button>
             </div>
@@ -384,17 +444,9 @@ Rules:
 
         {step === 2 && (
           <section className="form-section active">
-            <div className="flex justify-between items-center" style={{ marginBottom: '0.5rem' }}>
-              <h2 className="section-title" style={{ margin: 0 }}>
-                Who are you applying to?
-              </h2>
-              <span
-                style={{
-                  fontSize: '0.875rem',
-                  fontWeight: 700,
-                  color: companies.length >= MAX_COMPANIES ? 'var(--primary)' : 'var(--text-muted)',
-                }}
-              >
+            <div className="section-header">
+              <h2 className="section-title">Who are you applying to?</h2>
+              <span className={`count-badge ${companies.length >= MAX_COMPANIES ? 'count-badge--full' : ''}`}>
                 {companies.length} / {MAX_COMPANIES}
               </span>
             </div>
@@ -420,7 +472,7 @@ Rules:
               </div>
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
+            <div className="field">
               <label>What they do (Short description)</label>
               <input
                 value={companyInput.desc}
@@ -429,7 +481,7 @@ Rules:
               />
             </div>
 
-            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div className="action-grid">
               <button className="btn btn-secondary w-full" onClick={addCompany}>
                 <Plus size={16} /> Add Manually
               </button>
@@ -440,7 +492,7 @@ Rules:
                 ref={excelInputRef}
                 type="file"
                 accept=".xlsx, .xls, .csv"
-                style={{ display: 'none' }}
+                className="hidden"
                 onChange={handleExcel}
               />
             </div>
@@ -506,10 +558,9 @@ Rules:
                 <ArrowLeft size={16} /> Back
               </button>
               <button
-                className="btn btn-primary"
+                className={`btn btn-primary ${generateErr ? 'btn-danger' : ''}`}
                 onClick={generateEmails}
                 disabled={generating}
-                style={generateErr ? { background: 'var(--danger)' } : undefined}
                 title={generateErr ? 'Something went wrong. Check the browser console (F12).' : undefined}
               >
                 {generating ? (
@@ -528,17 +579,15 @@ Rules:
 
         {step === 4 && (
           <section className="form-section active">
-            <div className="flex items-center justify-between" style={{ marginBottom: '1.5rem' }}>
+            <div className="section-header mb-6">
               <div className="flex items-center">
-                <h2 className="section-title" style={{ margin: 0 }}>
-                  Review Emails
-                </h2>
+                <h2 className="section-title">Review Emails</h2>
                 <span className="lang-badge">
                   {langCfg.flag} {lang}
                 </span>
               </div>
               {!onLastReview && (
-                <span style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                <span className="count-value">
                   {currentIdx + 1} / {emails.length}
                 </span>
               )}
@@ -579,9 +628,9 @@ Rules:
                 {editing && (
                   <div className="mt-6">
                     <textarea
+                      className="edit-textarea"
                       value={editBody}
                       onChange={(e) => setEditBody(e.target.value)}
-                      style={{ minHeight: '200px', marginBottom: '1rem' }}
                     />
                     <button className="btn btn-primary w-full" onClick={saveEdit}>
                       Save Changes
@@ -592,24 +641,12 @@ Rules:
             )}
 
             {onLastReview && (
-              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                <div
-                  style={{
-                    background: 'var(--success)',
-                    color: 'white',
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto 1.5rem',
-                  }}
-                >
-                  <Check size={32} />
+              <div className="success-panel">
+                <div className="success-icon">
+                  <Check size={28} />
                 </div>
                 <h2 className="section-title">Mission Accomplished!</h2>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
+                <p>
                   You sent {sentCount} emails and skipped {skippedCount}. Good luck with your search!
                 </p>
                 <button className="btn btn-primary" onClick={resetAll}>

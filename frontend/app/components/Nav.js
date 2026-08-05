@@ -1,12 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Sparkles } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { FileText, LayoutGrid, Sparkles } from 'lucide-react';
 import { apiFetch } from '../lib/api';
+
+const SECTIONS = [
+  { href: '/', label: 'Applications', icon: Sparkles },
+  { href: '/resumes', label: 'Resumes', icon: FileText },
+  { href: '/companies', label: 'Companies', icon: LayoutGrid },
+];
 
 export default function Nav({ user }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   async function handleSignOut() {
     try {
@@ -19,29 +26,41 @@ export default function Nav({ user }) {
   return (
     <nav>
       <Link href="/" className="logo">
-        <Sparkles size={20} /> Jobly
+        <span className="logo-mark">
+          <Sparkles size={16} />
+        </span>
+        Jobly
       </Link>
       <div className="nav-links">
-        <a href="#features">Features</a>
-        <a href="#how-it-works">How it works</a>
-        <a href="#pricing">Pricing</a>
+        {SECTIONS.map(({ href, label, icon: Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            className={`nav-section-link ${pathname === href ? 'active' : ''}`}
+          >
+            <Icon size={16} />
+            {label}
+          </Link>
+        ))}
+      </div>
+      <div className="nav-actions">
         {user ? (
-          <button onClick={handleSignOut} className="nav-links-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontWeight: 500, fontSize: '0.95rem', fontFamily: 'inherit' }}>
+          <button onClick={handleSignOut} className="nav-link-btn">
             Sign out
           </button>
         ) : (
-          <Link href="/signin">Sign in</Link>
+          <Link href="/signin" className="nav-link-btn">Sign in</Link>
+        )}
+        {user ? (
+          <Link href="/" className="btn btn-primary btn-sm nav-user-pill">
+            {user.name.split(' ')[0]}
+          </Link>
+        ) : (
+          <Link href="/signup" className="btn btn-primary btn-sm">
+            Get Started
+          </Link>
         )}
       </div>
-      {user ? (
-        <Link href="#app" className="btn btn-primary" style={{ padding: '0.6rem 1.2rem', fontSize: '0.9rem' }}>
-          {user.name.split(' ')[0]}
-        </Link>
-      ) : (
-        <Link href="/signup" className="btn btn-primary" style={{ padding: '0.6rem 1.2rem', fontSize: '0.9rem' }}>
-          Get Started
-        </Link>
-      )}
     </nav>
   );
 }
