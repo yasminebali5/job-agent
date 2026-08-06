@@ -6,10 +6,3 @@ backend_out.log
 backend_err.log
 .claude/
 CLAUDE.md
-
-# Screenshots with personal data - only docs/sign-in.png and docs/sign-up.png are meant to be published
-docs/Companies.png
-docs/Companies2.png
-docs/Resumes.png
-docs/application.png
-docs/application2.png

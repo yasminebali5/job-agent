@@ -8,6 +8,14 @@ A two-app project: a FastAPI backend and a Next.js frontend that helps you gener
 |---|---|
 | ![Sign in](docs/sign-in.png) | ![Create account](docs/sign-up.png) |
 
+| Application form | Application form (step 1) |
+|---|---|
+| ![Application form](docs/application.png) | ![Application form step 1](docs/application2.png) |
+
+| Resumes | Companies |
+|---|---|
+| ![Resumes](docs/Resumes.png) | ![Companies](docs/Companies.png) |
+
 ## Setup
 
 Two processes, in separate terminals.
